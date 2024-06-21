@@ -17,6 +17,7 @@ package resources
 import (
 	"context"
 	"fmt"
+	"github.com/container-orchestrated-devices/container-device-interface/pkg/cdi"
 	"net"
 	"os"
 	"path/filepath"
@@ -136,17 +137,26 @@ func (rs *resourceServer) Allocate(ctx context.Context, rqt *pluginapi.AllocateR
 		}
 
 		if rs.useCdi {
-			containerResp.Annotations, err = rs.cdi.CreateContainerAnnotations(
-				container.DevicesIDs, rs.resourceNamePrefix, rs.resourcePool.GetCDIName())
+			for _, id := range container.DevicesIDs {
+				cdiDevice := pluginapi.CDIDevice{
+					Name: cdi.QualifiedName(rs.resourceNamePrefix, rs.resourcePool.GetCDIName(), id),
+				}
+
+				containerResp.CDIDevices = append(containerResp.CDIDevices, &cdiDevice)
+			}
+
+			//containerResp.Annotations, err = rs.cdi.CreateContainerAnnotations(
+			//	container.DevicesIDs, rs.resourceNamePrefix, rs.resourcePool.GetCDIName())
+
 			if err != nil {
 				return nil, fmt.Errorf("can't create container annotation: %s", err)
 			}
 		} else {
 			containerResp.Devices = rs.resourcePool.GetDeviceSpecs(container.DevicesIDs)
 			containerResp.Mounts = rs.resourcePool.GetMounts(container.DevicesIDs)
+			containerResp.Envs = envs
 		}
 
-		containerResp.Envs = envs
 		resp.ContainerResponses = append(resp.ContainerResponses, containerResp)
 	}
 	glog.Infof("AllocateResponse send: %+v", resp)
