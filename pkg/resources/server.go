@@ -146,6 +146,12 @@ func (rs *resourceServer) Allocate(ctx context.Context, rqt *pluginapi.AllocateR
 			containerResp.Mounts = rs.resourcePool.GetMounts(container.DevicesIDs)
 		}
 
+		for _, deviceId := range container.DevicesIDs {
+			containerResp.Annotations = map[string]string{
+				"aarna.com/sriov_device_id": deviceId,
+			}
+		}
+
 		containerResp.Envs = envs
 		resp.ContainerResponses = append(resp.ContainerResponses, containerResp)
 	}
